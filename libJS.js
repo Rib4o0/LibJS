@@ -231,7 +231,7 @@ export function cos(radians) {
 }
 
 export function random(min, max) { 
-
+  return floor(Math.random() * (max + 1)) + min;
 }
 
 export function factorial(n) {
@@ -277,27 +277,6 @@ export function createVector3(x, y, z) {
   }
 }
 
-export function createMatrix4() {
-  return [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0]
-  ]
-}
-
-export function multiplyMatrixVector3by4(i, o, matrix) {
-  o.x = i.x * matrix[0][0] + i.y * matrix[1][0] + i.z * matrix[2][0] + matrix[3][0];
-  o.y = i.x * matrix[0][1] + i.y * matrix[1][1] + i.z * matrix[2][1] + matrix[3][1];
-  o.z = i.x * matrix[0][2] + i.y * matrix[1][2] + i.z * matrix[2][2] + matrix[3][2];
-  let w = i.x * matrix[0][3] + i.y * matrix[1][3] + i.z * matrix[2][3] + matrix[3][3];
-
-  if (w !== 0) {
-    o.x /= w; 
-    o.y /= w; 
-    o.z /= w;
-  }
-}
 
 export function dist3d(x1, y1, z1, x2, y2, z2) {
   return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2));
