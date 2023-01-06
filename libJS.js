@@ -1,6 +1,9 @@
 // MATHHELPER FUN v 0.0.2 by Rosen Kamenov --------------------------------
 var ctx;
 var canvas;
+var drawingStates = [];
+var translated = { x: 0, y: 0 };
+var rotated = 0;
 export var height;
 export var width;
 export var center;
@@ -31,15 +34,21 @@ export function createCanvas(cWidth, cHeight) {
   document.body.appendChild(canvas);
 }
 
+export function push() {
+  let object = 0;
+}
+
 export function translate(x, y) { 
   ctx = getCtx();
   ctx.translate(x, y);  
+  translated = { x: translated.x + x, y: translated.y + y };
 }
 
 export function rotate(angle) { 
   let angleRad = toRadians(angle);
   ctx = getCtx();
   ctx.rotate(angleRad)
+  rotated += angleRad;
 }
 
 export function createLine(x1, y1, x2, y2, lineColor = "white", lineWidth = 1) {
