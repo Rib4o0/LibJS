@@ -8,8 +8,13 @@ var translated = { x: 0, y: 0 };
 var rotated = 0;
 var height;
 var width;
+var centerX;
+var centerY;
 var center;
 var aspectRatio;
+var fps;
+var currentFrameTime;
+var lastFrameTime;
 
 // Canvas functions
 
@@ -26,6 +31,8 @@ function createCanvas(cWidth, cHeight) {
   secondaryCanvas.height = cHeight
   width = canvas.width;
   height = canvas.height;
+  centerX = cWidth / 2;
+  centerY = cHeight / 2;
 
   ctx.imageSmoothingEnabled = false;
   ctx.mozImageSmoothingEnabled = false;
@@ -40,31 +47,56 @@ function createCanvas(cWidth, cHeight) {
   document.body.appendChild(canvas);
 }
 
-function push() {
-  let object = 0;
-}
+// function push() {
+//   let drawingState = { translateX: translated.x, translateY: translated.y, rotated: rotated };
+//   translate(-translate.x, -translate.y);
+//   rotate(-rotated);
+//   drawingStates.push(drawingState);
+// }
+
+// function pop() {
+//   let prevDrawingState = drawingStates.slice(-1);
+// }
 
 function translate(x, y) {
   secondaryctx = getCtx();
   secondaryctx.translate(x, y);
-  translated = { x: translated.x + x, y: translated.y + y };
+  translated = { x: parseFloat(translated.x) + x, y: parseFloat(translated.y) + y };
 }
 
 function rotate(angle) {
-  let angleRad = toRadians(angle);
   secondaryctx = getCtx();
-  secondaryctx.rotate(angleRad);
-  rotated += angleRad;
+  let x = translated.x;
+  let y = translated.y;
+  translate(-x, -y);
+  translate(centerX,centerY);
+  secondaryctx.rotate(angle * Math.PI / 180);
+  translate(-centerX, -centerY);
+  translate(x, y);
+  rotated += angle;
 }
 
 function createLine(x1, y1, x2, y2, lineColor = "white", lineWidth = 1) {
-  secondaryctx = getCtx();
-  secondaryctx.lineWidth = lineWidth;
-  secondaryctx.moveTo(x1, y1);
-  secondaryctx.lineTo(x2, y2);
-  secondaryctx.strokeStyle = lineColor;
-  secondaryctx.stroke();
-  secondaryctx.strokeStyle = "white";
+  var dx = Math.abs(x2 - x1);
+  var dy = Math.abs(y2 - y1);
+  var sx = x1 < x2 ? 1 : -1;
+  var sy = y1 < y2 ? 1 : -1;
+  var err = dx - dy;
+
+  while (true) {
+    colorPixel(x1, y1, lineWidth, lineColor); // Do what you need to for this
+
+    if (x1 === x2 && y1 === y2) break;
+    var e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x1 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y1 += sy;
+    }
+  }
   resetStyles();
 }
 
@@ -298,13 +330,26 @@ function dist3d(x1, y1, z1, x2, y2, z2) {
   );
 }
 
+// Runs the default functions
 
 setup()
+
+currentFrameTime = 0;
+lastFrameTime = 0;
 
 doubleBufferedAnimation();
 
 function doubleBufferedAnimation() {
   requestAnimationFrame(doubleBufferedAnimation);
+  calculateFPS()
   draw();
+  translate(parseFloat(-translated.x), parseFloat(-translated.y));
+  rotate(-rotated);
   ctx.drawImage(secondaryCanvas, 0, 0);
+}
+
+function calculateFPS() {
+  currentFrameTime = performance.now();
+  fps = Math.round(1 / ((currentFrameTime - lastFrameTime) /1000));
+  lastFrameTime = currentFrameTime;
 }
