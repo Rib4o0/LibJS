@@ -1,25 +1,38 @@
-// MATHHELPER FUN v 0.0.2 by Rosen Kamenov --------------------------------
+// MATHHELPER FUN v 0.0.3 by Rosen Kamenov --------------------------------
 var ctx;
+var secondaryctx;
 var canvas;
+var secondaryCanvas;
 var drawingStates = [];
 var translated = { x: 0, y: 0 };
 var rotated = 0;
 var height;
 var width;
+var centerX;
+var centerY;
 var center;
 var aspectRatio;
+var fps;
+var currentFrameTime;
+var lastFrameTime;
 
 // Canvas functions
 
 function createCanvas(cWidth, cHeight) {
   canvas = document.createElement("canvas");
   canvas.style.border = "1px solid black";
-  ctx = getCtx();
+  secondaryCanvas = document.createElement("canvas");
+  ctx = canvas.getContext("2d");
+  secondaryctx = secondaryCanvas.getContext("2d");
   ctx.strokeStyle = "white";
   canvas.width = cWidth;
   canvas.height = cHeight;
+  secondaryCanvas.width = cWidth
+  secondaryCanvas.height = cHeight
   width = canvas.width;
   height = canvas.height;
+  centerX = cWidth / 2;
+  centerY = cHeight / 2;
 
   ctx.imageSmoothingEnabled = false;
   ctx.mozImageSmoothingEnabled = false;
@@ -34,111 +47,136 @@ function createCanvas(cWidth, cHeight) {
   document.body.appendChild(canvas);
 }
 
-function push() {
-  let object = 0;
-}
+// function push() {
+//   let drawingState = { translateX: translated.x, translateY: translated.y, rotated: rotated };
+//   translate(-translate.x, -translate.y);
+//   rotate(-rotated);
+//   drawingStates.push(drawingState);
+// }
+
+// function pop() {
+//   let prevDrawingState = drawingStates.slice(-1);
+// }
 
 function translate(x, y) {
-  ctx = getCtx();
-  ctx.translate(x, y);
-  translated = { x: translated.x + x, y: translated.y + y };
+  secondaryctx = getCtx();
+  secondaryctx.translate(x, y);
+  translated = { x: parseFloat(translated.x) + x, y: parseFloat(translated.y) + y };
 }
 
 function rotate(angle) {
-  let angleRad = toRadians(angle);
-  ctx = getCtx();
-  ctx.rotate(angleRad);
-  rotated += angleRad;
+  secondaryctx = getCtx();
+  let x = translated.x;
+  let y = translated.y;
+  translate(-x, -y);
+  translate(centerX,centerY);
+  secondaryctx.rotate(angle * Math.PI / 180);
+  translate(-centerX, -centerY);
+  translate(x, y);
+  rotated += angle;
 }
 
 function createLine(x1, y1, x2, y2, lineColor = "white", lineWidth = 1) {
-  ctx = getCtx();
-  ctx.lineWidth = lineWidth;
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.strokeStyle = lineColor;
-  ctx.stroke();
-  ctx.strokeStyle = "white";
+  var dx = Math.abs(x2 - x1);
+  var dy = Math.abs(y2 - y1);
+  var sx = x1 < x2 ? 1 : -1;
+  var sy = y1 < y2 ? 1 : -1;
+  var err = dx - dy;
+
+  while (true) {
+    colorPixel(x1, y1, lineWidth, lineColor); // Do what you need to for this
+
+    if (x1 === x2 && y1 === y2) break;
+    var e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x1 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y1 += sy;
+    }
+  }
   resetStyles();
 }
 
 function colorPixel(x, y, pixelScale = 1, color = "white") {
-  ctx = getCtx();
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, pixelScale, pixelScale);
+  secondaryctx = getCtx();
+  secondaryctx.fillStyle = color;
+  secondaryctx.fillRect(x, y, pixelScale, pixelScale);
   resetStyles();
 }
 
 function createRect(x, y, width, height, color = "white") {
-  ctx = getCtx();
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, width, height);
+  secondaryctx = getCtx();
+  secondaryctx.fillStyle = color;
+  secondaryctx.fillRect(x, y, width, height);
   resetStyles();
 }
 
 function createRectExo(x, y, width, height, color = "white") {
-  ctx = getCtx();
-  ctx.strokeStyle = color;
-  ctx.strokeRect(x, y, width, height);
+  secondaryctx = getCtx();
+  secondaryctx.strokeStyle = color;
+  secondaryctx.strokeRect(x, y, width, height);
   resetStyles();
 }
 
 function createTriangle(x1, y1, x2, y2, x3, y3, color = "white") {
-  ctx = getCtx();
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.lineTo(x3, y3);
-  ctx.closePath();
-  ctx.fill();
+  secondaryctx = getCtx();
+  secondaryctx.fillStyle = color;
+  secondaryctx.beginPath();
+  secondaryctx.moveTo(x1, y1);
+  secondaryctx.lineTo(x2, y2);
+  secondaryctx.lineTo(x3, y3);
+  secondaryctx.closePath();
+  secondaryctx.fill();
   resetStyles();
 }
 
 function createTriangleExo(x1, y1, x2, y2, x3, y3, color = "white") {
-  ctx = getCtx();
-  ctx.strokeStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.lineTo(x3, y3);
-  ctx.closePath();
+  secondaryctx = getCtx();
+  secondaryctx.strokeStyle = color;
+  secondaryctx.beginPath();
+  secondaryctx.moveTo(x1, y1);
+  secondaryctx.lineTo(x2, y2);
+  secondaryctx.lineTo(x3, y3);
+  secondaryctx.closePath();
   resetStyles();
 }
 
 function createCircle(x, y, radius, color = "white") {
-  ctx = getCtx();
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, 2 * Math.PI);
-  ctx.fill();
-  ctx.stroke();
+  secondaryctx = getCtx();
+  secondaryctx.strokeStyle = color;
+  secondaryctx.fillStyle = color;
+  secondaryctx.beginPath();
+  secondaryctx.arc(x, y, radius, 0, 2 * Math.PI);
+  secondaryctx.fill();
+  secondaryctx.stroke();
   resetStyles();
 }
 
 function createCircleExo(x, y, radius, color = "white") {
-  ctx = getCtx();
-  ctx.strokeStyle = color;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, 2 * Math.PI);
-  ctx.stroke();
+  secondaryctx = getCtx();
+  secondaryctx.strokeStyle = color;
+  secondaryctx.beginPath();
+  secondaryctx.arc(x, y, radius, 0, 2 * Math.PI);
+  secondaryctx.stroke();
   resetStyles();
 }
 
 function drawText(text, x, y, color = "white", fontSize = 16) {
-  ctx = getCtx();
-  ctx.fillStyle = color;
-  ctx.font = `${fontSize}px Arial`;
-  ctx.fillText(text, x, y);
+  secondaryctx = getCtx();
+  secondaryctx.fillStyle = color;
+  secondaryctx.font = `${fontSize}px Arial`;
+  secondaryctx.fillText(text, x, y);
   resetStyles();
 }
 
 function drawTextExo(text, x, y, color = "white", fontSize = 16) {
-  ctx = getCtx();
-  ctx.strokeStyle = color;
-  ctx.font = `${fontSize}px Arial`;
-  ctx.strokeText(text, x, y);
+  secondaryctx = getCtx();
+  secondaryctx.strokeStyle = color;
+  secondaryctx.font = `${fontSize}px Arial`;
+  secondaryctx.strokeText(text, x, y);
   resetStyles();
 }
 
@@ -146,24 +184,24 @@ function displayImage(imgUrl, x, y, width, height) {
   let img = new Image();
   img.src = imgUrl;
   img.onload = function () {
-    ctx = getCtx();
-    ctx.drawImage(img, x, y, width, height);
+    secondaryctx = getCtx();
+    secondaryctx.drawImage(img, x, y, width, height);
     resetStyles();
   };
 }
 
 function backgroundColor(color, g = undefined, b = 0) {
-  ctx = getCtx();
+  secondaryctx = getCtx();
   if (isNaN(color)) {
-    ctx.fillStyle = color;
+    secondaryctx.fillStyle = color;
   } else {
     if (g !== undefined) {
-      ctx.fillStyle = `rgb(${color}, ${g}, ${b})`;
+      secondaryctx.fillStyle = `rgb(${color}, ${g}, ${b})`;
     } else {
-      ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+      secondaryctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
     }
   }
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  secondaryctx.fillRect(0, 0, canvas.width, canvas.height);
   resetStyles();
 }
 
@@ -172,21 +210,21 @@ function dist(x1, y1, x2, y2) {
 }
 
 function clear() {
-  ctx = getCtx();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  secondaryctx = getCtx();
+  secondaryctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function resetStyles() {
-  ctx = getCtx();
-  ctx.fillStyle = "white";
-  ctx.strokeStyle = "white";
-  ctx.lineWidth = 1;
-  ctx.lineCap = "butt";
-  ctx.lineJoin = "miter";
+  secondaryctx = getCtx();
+  secondaryctx.fillStyle = "white";
+  secondaryctx.strokeStyle = "white";
+  secondaryctx.lineWidth = 1;
+  secondaryctx.lineCap = "butt";
+  secondaryctx.lineJoin = "miter";
 }
 
 function getCtx() {
-  return canvas.getContext("2d");
+  return secondaryCanvas.getContext("2d");
 }
 
 // Utility functions
@@ -264,17 +302,17 @@ function toPolygon(shape) {
 }
 
 function drawPolygon(polygon, x = 0, y = 0) {
-  ctx = getCtx();
-  ctx.beginPath();
+  secondaryctx = getCtx();
+  secondaryctx.beginPath();
 
-  ctx.moveTo(polygon[0].x + x, polygon[0].y + y);
+  secondaryctx.moveTo(polygon[0].x + x, polygon[0].y + y);
   polygon.forEach((point) => {
-    ctx.lineTo(point.x + x, point.y + y);
+    secondaryctx.lineTo(point.x + x, point.y + y);
   });
-  ctx.lineTo(polygon[0].x + x, polygon[0].y + y);
+  secondaryctx.lineTo(polygon[0].x + x, polygon[0].y + y);
 
-  ctx.closePath();
-  ctx.stroke();
+  secondaryctx.closePath();
+  secondaryctx.stroke();
   resetStyles();
 }
 
@@ -292,7 +330,27 @@ function dist3d(x1, y1, z1, x2, y2, z2) {
   );
 }
 
+// Runs the default functions
 
 setup()
 
-draw()
+currentFrameTime = 0;
+lastFrameTime = 0;
+
+doubleBufferedAnimation();
+
+function doubleBufferedAnimation() {
+  requestAnimationFrame(doubleBufferedAnimation);
+  calculateFPS()
+  draw();
+  translate(parseFloat(-translated.x), parseFloat(-translated.y));
+  rotate(-rotated);
+  ctx.drawImage(secondaryCanvas, 0, 0);
+}
+
+function calculateFPS() {
+  currentFrameTime = performance.now();
+  fps = Math.round(1 / ((currentFrameTime - lastFrameTime) /1000));
+  lastFrameTime = currentFrameTime;
+}
+
