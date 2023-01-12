@@ -1,8 +1,10 @@
-// MATHHELPER FUN v 0.0.3 by Rosen Kamenov --------------------------------
+// MATHHELPER FUN v 0.0.4 by Rosen Kamenov --------------------------------
 var ctx;
 var secondaryctx;
+var imgctx;
 var canvas;
 var secondaryCanvas;
+var imgCanvas;
 var drawingStates = [];
 var translated = { x: 0, y: 0 };
 var rotated = 0;
@@ -15,20 +17,29 @@ var aspectRatio;
 var fps;
 var currentFrameTime;
 var lastFrameTime;
-
+var loop;
+var drawRate;
+var fRate;
+var mouseX;
+var mouseY;
+var textAlign;
 // Canvas functions
 
 function createCanvas(cWidth, cHeight) {
   canvas = document.createElement("canvas");
   canvas.style.border = "1px solid black";
   secondaryCanvas = document.createElement("canvas");
+  imgCanvas = document.createElement("canvas");
   ctx = canvas.getContext("2d");
   secondaryctx = secondaryCanvas.getContext("2d");
+  imgctx = imgCanvas.getContext("2d");
   ctx.strokeStyle = "white";
   canvas.width = cWidth;
   canvas.height = cHeight;
   secondaryCanvas.width = cWidth
   secondaryCanvas.height = cHeight
+  imgCanvas.width = cWidth;
+  imgCanvas.height = cHeight;
   width = canvas.width;
   height = canvas.height;
   centerX = cWidth / 2;
@@ -47,16 +58,23 @@ function createCanvas(cWidth, cHeight) {
   document.body.appendChild(canvas);
 }
 
-// function push() {
-//   let drawingState = { translateX: translated.x, translateY: translated.y, rotated: rotated };
-//   translate(-translate.x, -translate.y);
-//   rotate(-rotated);
-//   drawingStates.push(drawingState);
-// }
+function push() {
+  let drawingState = { translatedX: translated.x, translatedY: translated.y, rotated: rotated };
+  translate(-translated.x, -translated.y);
+  translated.x = 0; translated.y = 0;
+  rotate(-rotated);
+  drawingStates.push(drawingState);
+}
 
-// function pop() {
-//   let prevDrawingState = drawingStates.slice(-1);
-// }
+function pop() {
+  let prevDrawingState = drawingStates[drawingStates.length / 2];
+  translate(-translated.x, -translated.y);
+  translated.x = 0; translated.y = 0;
+  rotate(-rotated);
+  if (drawingStates[drawingStates.length / 2] == undefined) return
+  translate(prevDrawingState.translatedX, prevDrawingState.translatedY);
+  drawingStates.pop();
+}
 
 function translate(x, y) {
   secondaryctx = getCtx();
@@ -64,15 +82,23 @@ function translate(x, y) {
   translated = { x: parseFloat(translated.x) + x, y: parseFloat(translated.y) + y };
 }
 
-function rotate(angle) {
+function alignText(alignment) {
+  textAlign = alignment;
+}
+
+function rotate(angle, relativeToCenter = false) {
   secondaryctx = getCtx();
-  let x = translated.x;
-  let y = translated.y;
-  translate(-x, -y);
-  translate(centerX,centerY);
+  if (relativeToCenter) {
+    let x = translated.x; let y = translated.y;
+    translate(-x, -y);translate(centerX,centerY);
+  };
+  
+  
   secondaryctx.rotate(angle * Math.PI / 180);
-  translate(-centerX, -centerY);
-  translate(x, y);
+  if (relativeToCenter) {
+    translate(-centerX, -centerY);
+    translate(x, y);
+  }
   rotated += angle;
 }
 
@@ -97,6 +123,16 @@ function createLine(x1, y1, x2, y2, lineColor = "white", lineWidth = 1) {
       y1 += sy;
     }
   }
+  resetStyles();
+}
+
+function createCtxLine(x1, y1, x2, y2, lineColor = "white", lineWidth = 1) {
+  ctx = getCtx();
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = lineColor;
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
   resetStyles();
 }
 
@@ -149,7 +185,7 @@ function createCircle(x, y, radius, color = "white") {
   secondaryctx.strokeStyle = color;
   secondaryctx.fillStyle = color;
   secondaryctx.beginPath();
-  secondaryctx.arc(x, y, radius, 0, 2 * Math.PI);
+  secondaryctx.arc(x, y, radius / 2, 0, 2 * Math.PI);
   secondaryctx.fill();
   secondaryctx.stroke();
   resetStyles();
@@ -159,15 +195,16 @@ function createCircleExo(x, y, radius, color = "white") {
   secondaryctx = getCtx();
   secondaryctx.strokeStyle = color;
   secondaryctx.beginPath();
-  secondaryctx.arc(x, y, radius, 0, 2 * Math.PI);
+  secondaryctx.arc(x, y, radius / 2, 0, 2 * Math.PI);
   secondaryctx.stroke();
   resetStyles();
 }
 
-function drawText(text, x, y, color = "white", fontSize = 16) {
+function drawText(text, x, y,fontSize = 16, color = "white" ) {
   secondaryctx = getCtx();
   secondaryctx.fillStyle = color;
   secondaryctx.font = `${fontSize}px Arial`;
+  if (textAlign === "center") secondaryctx.textBaseline = "middle"; secondaryctx.textAlign = "center";//x -= ctx.measureText(text).width / 2;
   secondaryctx.fillText(text, x, y);
   resetStyles();
 }
@@ -180,14 +217,9 @@ function drawTextExo(text, x, y, color = "white", fontSize = 16) {
   resetStyles();
 }
 
-function displayImage(imgUrl, x, y, width, height) {
-  let img = new Image();
-  img.src = imgUrl;
-  img.onload = function () {
-    secondaryctx = getCtx();
-    secondaryctx.drawImage(img, x, y, width, height);
-    resetStyles();
-  };
+function displayImage(img, x, y, width, height) {
+  secondaryctx = getCtx();
+  secondaryctx.drawImage(img, x, y, width, height);
 }
 
 function backgroundColor(color, g = undefined, b = 0) {
@@ -205,8 +237,18 @@ function backgroundColor(color, g = undefined, b = 0) {
   resetStyles();
 }
 
-function dist(x1, y1, x2, y2) {
-  return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+function dist(x1, y1, x2, y2, z1 = 0, z2 = 0) {
+  return Math.sqrt(
+    (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1));
+}
+
+function rotate2dPoint(x, y, angle, xc = 0, yc = 0) {
+  let x1 = (x - xc) * cos(angle) - (y - yc) * sin(angle) + xc;
+  let y1 = (x - xc) * sin(angle) + (y - yc) * cos(angle) + yc;
+  return {
+    x: x1,
+    y: y1
+  }
 }
 
 function clear() {
@@ -221,6 +263,19 @@ function resetStyles() {
   secondaryctx.lineWidth = 1;
   secondaryctx.lineCap = "butt";
   secondaryctx.lineJoin = "miter";
+}
+
+// Loading functions
+
+function loadImage() { 
+  secondaryctx = getCtx();
+
+  let imgObj = new Image();
+  imgObj.src = "img.png";
+
+  imgObj.onload = function() {
+    ctx.drawImage(imgObj, 0, 0);
+  }
 }
 
 function getCtx() {
@@ -278,7 +333,15 @@ function cos(radians) {
 }
 
 function random(min, max) {
-  return floor(Math.random() * (max + 1)) + min;
+  return Math.floor(Math.random() * (max + 1)) + min;
+}
+
+function isPrime(x) {
+  if (x <= 1) return false; // 1 is not prime 
+  for (let i = 2; i <= Math.sqrt(x); i++) { 
+    if (x % i == 0) return false;
+  }
+  return true;
 }
 
 function factorial(n) {
@@ -324,26 +387,66 @@ function createVector3(x, y, z) {
   };
 }
 
-function dist3d(x1, y1, z1, x2, y2, z2) {
-  return Math.sqrt(
-    Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2)
-  );
+// animation cotrolling functions
+
+function noLoop() {
+  loop = false;
+  fps = 0;
+  calculateFPS();
+  draw();
+  translate(parseFloat(-translated.x), parseFloat(-translated.y));
+  rotate(-rotated);
+  ctx.drawImage(secondaryCanvas, 0, 0);
+}
+
+function reLoop() { 
+  if (loop) { return; }
+  loop = true;
+  doubleBufferedAnimation();
+}
+
+function redraw() {
+  calculateFPS();
+  draw();
+  translate(parseFloat(-translated.x), parseFloat(-translated.y));
+  rotate(-rotated);
+  ctx.drawImage(secondaryCanvas, 0, 0);
+}
+
+function screenFrameRate(rate) {
+  fRate = rate;
+}
+
+function awaitDraw() { 
+  
 }
 
 // Runs the default functions
 
+loop = true;
+fRate = undefined;
 setup()
 
 currentFrameTime = 0;
 lastFrameTime = 0;
 
-doubleBufferedAnimation();
+
+if (loop == false) {
+  redraw();
+} else if (fRate != undefined) {
+  log("Frame rate", fRate)
+  drawRate = setInterval(redraw, 1000/fRate);
+} else {
+  log("Buffering frame rate")
+  doubleBufferedAnimation();
+} 
 
 function doubleBufferedAnimation() {
   requestAnimationFrame(doubleBufferedAnimation);
-  calculateFPS()
-  draw();
-  translate(parseFloat(-translated.x), parseFloat(-translated.y));
+  calculateFPS();
+  if (loop) draw(() => { });
+  if (fRate != undefined) loop = false;
+    translate(parseFloat(-translated.x), parseFloat(-translated.y));
   rotate(-rotated);
   ctx.drawImage(secondaryCanvas, 0, 0);
 }
@@ -352,4 +455,13 @@ function calculateFPS() {
   currentFrameTime = performance.now();
   fps = Math.round(1 / ((currentFrameTime - lastFrameTime) /1000));
   lastFrameTime = currentFrameTime;
+}
+
+window.addEventListener('mousemove', (e) => {
+  onMouseMove(e);
+});
+
+function onMouseMove(event) {
+  mouseX = event.clientX
+  mouseY = event.clientY
 }
