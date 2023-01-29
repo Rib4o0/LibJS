@@ -1,4 +1,4 @@
-// MATHHELPER FUN v 0.0.4 by Rosen Kamenov --------------------------------
+// MATHHELPER FUN v 0.0.5 by Rosen Kamenov --------------------------------
 var ctx;
 var secondaryctx;
 var imgctx;
@@ -217,9 +217,13 @@ function drawTextExo(text, x, y, color = "white", fontSize = 16) {
   resetStyles();
 }
 
-function displayImage(img, x, y, width, height) {
-  secondaryctx = getCtx();
-  secondaryctx.drawImage(img, x, y, width, height);
+async function displayImage(img, x, y, width = undefined, height = undefined) {
+  secondaryctx = await getCtx()
+  if (width == undefined || height == undefined) { 
+    secondaryctx.drawImage(img, x, y);
+  } else {
+    secondaryctx.drawImage(img, x, y, width, height);
+  }
 }
 
 function backgroundColor(color, g = undefined, b = 0) {
@@ -267,14 +271,18 @@ function resetStyles() {
 
 // Loading functions
 
-function loadImage() { 
+function loadImage(imgLoc) { 
   secondaryctx = getCtx();
 
+  if (typeof imgLoc != "string") return;
+
   let imgObj = new Image();
-  imgObj.src = "img.png";
+  imgObj.src = imgLoc;
 
   imgObj.onload = function() {
-    ctx.drawImage(imgObj, 0, 0);
+    // secondaryctx.drawImage(imgObj, 0, 0);
+    // log(typeof imgObj)
+    return imgObj;
   }
 }
 
@@ -333,6 +341,7 @@ function cos(radians) {
 }
 
 function random(min, max) {
+  max -= min;
   return Math.floor(Math.random() * (max + 1)) + min;
 }
 
@@ -425,7 +434,7 @@ function awaitDraw() {
 
 loop = true;
 fRate = undefined;
-setup()
+setup(() => { }); 
 
 currentFrameTime = 0;
 lastFrameTime = 0;
@@ -465,3 +474,15 @@ function onMouseMove(event) {
   mouseX = event.clientX
   mouseY = event.clientY
 }
+
+window.addEventListener('mousedown', () => {
+  if (typeof mouseDown === 'function') {
+    mouseDown();
+  }
+});
+
+window.addEventListener("mouseup", () => {
+  if (typeof mouseUp === 'function') { 
+    mouseUp();
+  }
+});
