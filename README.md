@@ -6,11 +6,29 @@ It is completly free to use. Happy coding :)
 
 How to setup:
 1. Download the framework and place it in your project's directory
-2. // way 1 ----------------------------------------------------------------------------------------------------------------
-3. in your html link the libJS.js file below your main script file using the <script/> src attribute ( add the defer attribute )
-4. !!!for that you will need to use the noExport version of libJS!!!
-5. create a setup function which will be called by default
-6. Create a draw loop by creating a function and calling it 'draw' ( it will be called by itself so dont call it)
-7. And you are done!
+2. Create an html file
+3. Create a script file in which you will use libJS
+4. Link the script file to the html with the <script src='your_file.js'></script>
+5. Link the libJS file to the html using the script element with the src & defer attribute
+6. Create your setup() and draw() functions
+7. In your setup() create your canvas using createCanvas(width,height)
 
-For functions list chech FUNCTIONS.md
+In the end it should look something like this:
+In the html file:
+<header>
+  ...
+  <script src='example.js'></script>
+  <script src='libJS.js' defer></script>
+</header>
+In example.js:
+function setup() {
+  createCanvas(400,600);
+  // your setup code goes here
+}
+
+function draw() {
+  // your drawing code goes here
+}
+
+For the list of functions you can check the functions.md file
+Any suggestions, bugs and feedback will be appriciated.
